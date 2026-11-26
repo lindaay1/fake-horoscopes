@@ -12,6 +12,7 @@ the approved line.
 """
 
 import hashlib
+import os
 import sys
 from enum import Enum
 
@@ -79,11 +80,14 @@ def publish(text):
         failed = [name for name, v in verdicts(text) if v is Verdict.FAIL]
         raise ValueError("gate failed: %s" % ", ".join(failed))
     blob = text.encode("utf-8")
+    # The grader mounts the repo read-only and gives a writable output
+    # dir via MAKEFUN_OUTPUT_DIR; write there when it is set, else CWD.
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", ".")
     for name in ("entry.txt", "horoscope.txt"):
-        with open(name, "wb") as fh:
+        with open(os.path.join(out_dir, name), "wb") as fh:
             fh.write(blob)
     for name in ("entry.txt", "horoscope.txt"):
-        with open(name, "rb") as fh:
+        with open(os.path.join(out_dir, name), "rb") as fh:
             if fh.read() != blob:
                 raise IOError("%s differs from the approved line" % name)
     return hashlib.sha256(blob).hexdigest()
